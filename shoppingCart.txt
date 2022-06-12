@@ -1,0 +1,330 @@
+   //SHoPping product 
+                          //FORM  VALIDATION VARIABLE
+const SignBtn = document.querySelector('.sign');                            
+// menu varibles
+const menuContainer = document.querySelector('.menu_container');
+const filterContainer = document.querySelector('.btn_container');
+const menuBtn = document.querySelector('.add_to_cart');
+const cartContainer = document.querySelector('.cart_wrapper')
+const displayShowCart = document.querySelector('.cart_overlay')
+const totalPrice = document.querySelector('.total');
+const itemAmount = document.querySelector('.item');
+// remove btn
+const removeItems = document.querySelector('.clear')
+const closeBtn = document.querySelector('.close_btn')
+const openBtn = document.querySelector('#shopping');
+
+// intaial product item
+const menu = [
+  {
+      id:1,
+      img: '../img/ice-cream.jpg',
+      title:'Ice  Cream',
+      price:12.99,
+      category: 'ice',
+      disc: 'lorm Lorem ipsum dolor sit, amet consectetur '
+  },
+  {
+      id:2,
+      img: '../img/Cold_coffe.jpg',
+      title:'Cold Coffe',
+      price:12.99,
+      category: 'coffe',
+      disc: 'lorm Lorem ipsum dolor sit, amet consectetur  '
+  },
+  {
+      id:3,
+      img: '../img/pizza.jpg',
+      title:'Pizza',
+      price:20.99,
+      category: 'pizza',
+      disc: 'lorm Lorem ipsum dolor sit, amet consectetur '   
+  },
+  {
+      id:4,
+      img: '../img/platter.jpg',
+      title:'platter',
+      price:10.99,
+      category: 'platter',
+      disc: 'lorm Lorem ipsum dolor sit, amet consectetur '   
+  }
+]
+
+let cart = []
+let buttonDom = []
+class Product{
+   displayProduct(menuItem){
+       let displayMenu = menuItem.map(item => {
+         return ` <div class="menu_item opacity">
+         <div class="get_btn">
+            <img src=${item.img} alt="${item.title}">
+             <button class="add_to_cart" data-id=${item.id}>ADD CART</button>
+         </div>
+         <div class="menu_content">
+             <h3 class="food_title">${item.title}</h3>
+             <P class="price">${item.price}</P>
+         </div>
+     </div>`
+       }); 
+       displayMenu = displayMenu.join(" ");
+     menuContainer.innerHTML = displayMenu;
+    //  
+    //  const bagButtons = [...document.querySelectorAll('.add_to_cart')]
+     this.getBagButtons();   
+}
+ // CREAT UNIQUE BUTTON
+ uniqueButton(){
+  const categories = menu.reduce((values,item) =>{
+    if(!values.includes(item.category)){
+      values.push(item.category);
+    }
+    return values
+},['all']);
+const btnCategory = categories.map(category =>{
+  return `<button class="filter_btn"  data-id=${category}>${category}</button>`
+}).join(" ")
+ filterContainer.innerHTML = btnCategory;
+ }  
+// filterBtn method
+  filterButton(){
+    // unique button
+    this.uniqueButton();
+    // event fire and what happend inside
+    const filterBtn = document.querySelectorAll('.filter_btn');
+    const productItem = document.querySelectorAll('.menu_item');
+         filterBtn.forEach( btn =>{
+           btn.addEventListener('click',(e) =>{
+             let category = e.currentTarget.dataset.id;
+           const menuCategory = menu.filter(menuItem =>{
+            if(menuItem.category === category){
+              return menuItem;
+            }
+           });
+          if(category ==='all'){
+            this.displayProduct(menu);
+          }
+          else{
+            this.displayProduct(menuCategory);
+          }   
+            productItem.forEach(item =>{
+              item.classList.add('opacity');
+            })        
+           })
+         }) 
+  }
+
+
+// ///////////////////// FACING PROBLEM START //////////////////
+  
+
+// TARAGET ALL SINGLE SHOPING BUTTON AND EVENT EXCUTED (IMPORTENT)
+getBagButtons(){
+  const bagButtons = [...document.querySelectorAll('.add_to_cart')]
+  buttonDom = bagButtons;
+  bagButtons.forEach(button =>{
+       let Id = button.dataset.id;
+        let inCart = cart.find(item => item.id == Id);
+        if(inCart){
+          button.innerText = 'IN CART'
+          button.disabled = true;
+        }
+       button.addEventListener('click',event =>{
+           event.target.innerText = 'IN CART'
+           event.target.disabled = true;
+
+          // GET PRODUCT TO SPECIFIC PRODUCT 
+           let menuSingleItem ={...Storage.getItem(Id), amount: 1}
+         // GET ALL CART ITEM AND SET SEPECIF PRODUCT TO CART{note: cart default value is emty arr []}
+            cart = [...cart, menuSingleItem]
+            //THEN SAVE ALL ALL CART ITEM LOCAT STORAGE
+           Storage.saveCart(cart)
+           // THIS METHOD :: TOTAL AMOUNT & QUNTITY CALACUTE
+           this.setCartValuse(cart);
+           // THEN ADD PRODUCT AND DISPLAY
+          // 
+          this.displayCartItem(menuSingleItem)
+          this.showCart()
+       })
+
+  })
+}
+// SHOP CART PAYMENT CALCULATION
+ setCartValuse(cart){
+  let tempTotal = 0;
+  let amountCart = 0;
+  cart.map(item =>{
+    tempTotal += item.price * item.amount
+    amountCart += item.amount
+  })
+totalPrice.innerText = parseFloat(tempTotal.toFixed(2))
+itemAmount.innerText = amountCart;
+}
+
+// DISPLAY PRODUCT ITEMS
+ displayCartItem(items){
+  const article = document.createElement('article')
+  article.classList.add('cart_container')
+  article.innerHTML =`<img src=${items.img}>
+  <div class="cart_content">
+      <h3>${items.title}</h3>
+      <p class="price">${items.price}</p>
+      <button class="remove_item" data-id=${items.id}>remove</button>
+  </div>
+  <div class="cart_btn_container">
+      <button class="up" data-id=${items.id}>+</button>
+      <p class="amount">${items.amount}</p>
+      <button class="down" data-id=${items.id}>-</button>
+  </div>`
+ cartContainer.appendChild(article);
+}
+
+// ALL BUTTON LOGIC CHECK IT.THIS IS A MAJOR PROBLEM 
+buttonLogic(){
+  removeItems.addEventListener('click',()=>{
+    this.clearCart()
+  });
+  // single item deleted
+  cartContainer.addEventListener('click',event =>{
+    if(event.target.classList.contains('remove_item')){
+     let removeItems = event.target;
+     let Id = removeItems.dataset.id
+     cartContainer.removeChild(removeItems.parentElement.parentElement);
+     this.removeAll(Id);
+    }
+  // WHEN USER  MORE ITEM ADDED CHANGE CART AMOUNT AND QUNTITY CALCULATE
+    else if(event.target.classList.contains('up')){
+      let upItems = event.target
+      let Id = upItems.dataset.id;
+      let tempItems = cart.find(item =>item.id == Id )
+      tempItems.amount = tempItems.amount + 1 
+      if(tempItems.amount <= 5){
+        this.setCartValuse(cart);
+        upItems.nextElementSibling.innerText = tempItems.amount
+      }
+      else{
+        alert('Dont cross amoun of five');
+      }
+    }
+
+     // WHEN USER  QUNTITY DOWN CART AMOUNT AND QUNTITY CALCULATE
+    else if(event.target.classList.contains('down')){
+      let downCart = event.target;
+      let Id = downCart.dataset.id;
+      let tempItems = cart.find(item =>item.id == Id)
+      tempItems.amount = tempItems.amount - 1;
+        if(tempItems.amount > 0){
+          Storage.saveCart(cart)
+          this.setCartValuse(cart)
+         downCart.previousElementSibling.innerText = tempItems.amount
+      }
+      
+      else{
+        cartContainer.removeChild(downCart.parentElement.parentElement)
+        this.removeAll(Id);
+          }    
+ }
+  })
+
+}
+// REMOVE SINGLE CART ITEMS METHOD
+clearCart(){
+  let cartId = cart.map(item =>item.id)
+  cartId.forEach(Id => this.removeAll(Id)) 
+  while(cartContainer.children.length > 0)
+  {
+    cartContainer.removeChild(cartContainer.children[0])
+  }
+}
+
+//REMOVE ALL METHOD
+removeAll(id){
+  cart = cart.filter(item => item.id !== id)
+  Storage.saveCart(cart)
+  this.setCartValuse(cart)
+  // SET PREVIOUS BUTTON METHOD
+  let button = this.getSingleButton(id)
+  button.innerHTML = 'ADD CART'
+  button.disabled = false;
+}
+// target product button
+getSingleButton(id){
+  return buttonDom.find(button => button.dataset.id == id)
+}
+
+// THIS ONLY LOCAL STORAGE DATA DISPLAY DEFAULT
+setAPP(){
+  cart = Storage.getCartItem()
+  this.setCartValuse(cart);
+  this.displayCart(cart)
+  closeBtn.addEventListener('click',this.hideCart)
+  openBtn.addEventListener('click',this.showCart);
+  this.hideCart();
+}
+
+displayCart(cart){
+  cart.forEach(item => this.displayCartItem(item))
+}
+
+ showCart(){
+displayShowCart.classList.add('show_cart')
+}
+
+hideCart(){
+displayShowCart.classList.remove('show_cart');
+}
+
+}
+
+class UI{
+  // main slide show
+  slideShow(){
+    index++;
+    if(index > allSlide.length-1){
+        index = 0;
+        }
+    for (let i = 0; i < allSlide.length; i++) {
+         allSlide[i].classList.remove('animit');  
+    }
+    allSlide[index].classList.add('animit');
+    slideContainer.style.transform = `translateX(${-slideWidth * index}px)`;  
+}
+}
+
+
+class Storage{
+static saveProduct(menu){
+  localStorage.setItem('menus',JSON.stringify(menu));
+}
+
+static getItem (id){
+  let menuI = JSON.parse(localStorage.getItem('menus'));
+  return menuI.find(item => item.id == id);
+}
+
+static saveCart(cart){
+  localStorage.setItem('cart',JSON.stringify(cart))
+}
+static getCartItem(){
+  return localStorage.getItem('cart')? JSON.parse(localStorage.getItem('cart')):[];
+}
+}
+
+// WHEN DOM LOADED BROWSER CALL EVERY METHOD
+document.addEventListener('DOMContentLoaded',() =>{
+  const ui = new UI()
+  const products = new Product();
+  // 
+  products.setAPP()
+  setInterval( ui.slideShow,3000);
+  products.displayProduct(menu);
+
+  // all PRODUCT SAVE TO LOCAL STROAGE
+  Storage.saveProduct(menu)
+  // button logice
+  products.filterButton();
+
+// CALL BUTTON LOGIC METHOD
+  products.buttonLogic();
+
+
+});
